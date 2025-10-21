@@ -1,9 +1,10 @@
-import streamDeck, { action, DialDownEvent, DialRotateEvent, SingletonAction, WillAppearEvent } from "@elgato/streamdeck";
+import streamDeck, { action, DialDownEvent, DialRotateEvent, JsonObject, SingletonAction, TouchTapEvent, WillAppearEvent } from "@elgato/streamdeck";
 import { sendMessage, socket } from "../plugin";
+import { send, title } from "process";
 
 const APP_NAME = "Spotify";
 
-let currentVolume = 50; // fallback default
+let currentVolume = 100; // fallback default
 
 @action({ UUID: "com.syzole.audio-mixer.volume" })
 export class VolumeControlAction extends SingletonAction {
@@ -20,11 +21,17 @@ export class VolumeControlAction extends SingletonAction {
 						if (ev.action.isDial()) {
 							ev.action.setFeedback({
 								indicator: {
-									value: currentVolume,
+									value: data.volume,
+								},
+								value: {
+									value: `${data.volume}%`,
+								},
+								title: {
+									value: `${APP_NAME}`,
 								},
 							});
 						}
-						streamDeck.logger.info(`📡 Synced volume: ${currentVolume}`);
+						//streamDeck.logger.info(`📡 Synced volume: ${currentVolume}`);
 					}
 				} catch (err) {
 					streamDeck.logger.info("Invalid status response:", err);
@@ -38,9 +45,42 @@ export class VolumeControlAction extends SingletonAction {
 		sendMessage({ type: "toggleMute", app: APP_NAME });
 	}
 
+	override async onTouchTap(ev: TouchTapEvent) {
+		//streamDeck.logger.info("🔇 Toggling mute for", APP_NAME);
+		sendMessage({ type: "toggleMute", app: APP_NAME });
+	}
+
 	override async onDialRotate(ev: DialRotateEvent) {
 		const direction = ev.payload.ticks > 0 ? "up" : "down";
 		sendMessage({ type: "adjustVolume", app: APP_NAME, direction });
+
+		socket.addEventListener(
+			"message",
+			(event) => {
+				try {
+					const data = JSON.parse(event.data.toString());
+					data.volume = Math.round(data.volume); // Ensure volume is an integer
+					streamDeck.logger.info("🔄 Response:", data);
+					streamDeck.logger.info("🔄 Volume:", data.volume);
+					if (typeof data.volume === "number") {
+						if (ev.action.isDial()) {
+							ev.action.setFeedback({
+								indicator: {
+									value: data.volume,
+								},
+								value: {
+									value: `${data.volume}%`,
+								},
+							});
+						}
+						//streamDeck.logger.info(`📡 Synced volume: ${currentVolume}`);
+					}
+				} catch (err) {
+					streamDeck.logger.info("Invalid status response:", err);
+				}
+			},
+			{ once: true }
+		);
 	}
 }
 

@@ -35,7 +35,7 @@ public class AudioController
         return false;
     }
 
-    public AudioSessionControl FindSession(string processName)
+    public AudioSessionControl? FindSession(string processName)
     {
         var sessions = defaultDevice.AudioSessionManager.Sessions;
         for (int i = 0; i < sessions.Count; i++)
@@ -47,7 +47,10 @@ public class AudioController
                 if (proc.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase))
                     return session;
             }
-            catch { }
+            catch
+            {
+                // Ignore processes that can't be found
+            }
         }
         return null;
     }

@@ -5,6 +5,13 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PublishSingleFile>true</PublishSingleFile>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
+    <SelfContained>true</SelfContained>
+    <EnableComHosting>true</EnableComHosting>
+    <EnableComInterop>true</EnableComInterop>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,5 +19,10 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
+
+  <PropertyGroup>
+   <EnableComHosting Condition="'$(SelfContained)' != 'true'">true</EnableComHosting>
+   <EnableComInterop>true</EnableComInterop>
+ </PropertyGroup>
 
 </Project>

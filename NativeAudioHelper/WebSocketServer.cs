@@ -26,14 +26,20 @@ public class AudioWebSocketServer
                 {
                     JObject msg = JObject.Parse(message);
                     Console.WriteLine("Received message: " + message);
-                    string type = (string)msg["type"];
+                    string? type = (string?)msg["type"];
                     Console.WriteLine("Received message: " + type);
-                    string process = (string)msg["app"];
+                    string? process = (string?)msg["app"];
                     Console.WriteLine("Process: " + process);
+
+                    if (process == null || type == null)
+                    {
+                        socket.Send("{\"error\":\"missing fields\"}");
+                        return;
+                    }
 
                     if (type == "setVolume")
                     {
-                        float value = (float)msg["value"];
+                        float value = (float?)msg["value"] ?? 0f;
                         bool success = audioController.SetVolume(process, value);
                         socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\"}}");
                     }
@@ -51,6 +57,7 @@ public class AudioWebSocketServer
                         if (session != null)
                         {
                             currentVolume = session.SimpleAudioVolume.Volume * 100f;
+                            currentVolume = (float)Math.Round(currentVolume); // Round to nearest integer
                             success = true;
                         }
 
@@ -64,7 +71,7 @@ public class AudioWebSocketServer
                         {
                             float step = 0.05f; // 5%
                             float current = session.SimpleAudioVolume.Volume;
-                            string direction = (string)msg["direction"];
+                            string? direction = (string?)msg["direction"];
                             float newVolume = direction == "up"
                                 ? Math.Min(current + step, 1f)
                                 : Math.Max(current - step, 0f);
@@ -73,7 +80,8 @@ public class AudioWebSocketServer
                             success = true;
                         }
 
-                        socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\"}}");
+                        int roundedVolume = session != null ? (int)Math.Round(session.SimpleAudioVolume.Volume * 100f) : 0;
+                        socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\",\"volume\":{roundedVolume}}}");
                     }
 
                     else

@@ -4,3 +4,7 @@ node_modules/
 # Stream Deck files
 *.sdPlugin/bin
 *.sdPlugin/logs
+
+NativeAudioHelper/bin/
+NativeAudioHelper/obj/
+NativeAudioHelper/publish/

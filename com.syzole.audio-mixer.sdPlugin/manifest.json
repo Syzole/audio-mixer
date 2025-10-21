@@ -23,7 +23,7 @@
 			"Icon": "imgs/actions/volume/icon",
 			"Tooltip": "Adjust the volume of the selected application.",
 			"PropertyInspectorPath": "ui/volume-control.html",
-			"Controllers": ["Encoder"],
+			"Controllers": ["Encoder", "Keypad"],
 			"Encoder": {
 				"layout": "$B1"
 			},
