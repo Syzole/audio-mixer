@@ -2,7 +2,7 @@
 import WebSocket from "ws";
 import streamDeck, { LogLevel } from "@elgato/streamdeck";
 import { VolumeControlAction } from "./actions/volume-control";
-import { IncrementCounter } from "./actions/increment-counter";
+import { VolumeStepAction } from "./actions/volume-step";
 
 // Optional: Enable detailed logging
 streamDeck.logger.setLevel(LogLevel.TRACE);
@@ -11,8 +11,8 @@ streamDeck.logger.setLevel(LogLevel.TRACE);
 streamDeck.connect();
 
 // Register your actions
-streamDeck.actions.registerAction(new IncrementCounter());
 streamDeck.actions.registerAction(new VolumeControlAction());
+streamDeck.actions.registerAction(new VolumeStepAction());
 
 // 🔌 WebSocket setup
 export let socket: WebSocket;

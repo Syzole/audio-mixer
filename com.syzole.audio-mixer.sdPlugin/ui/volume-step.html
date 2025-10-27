@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <meta charset="utf-8" />
+
+    <script src="sdpi-components.js"></script>
+  </head>
+
+  <body>
+    <sdpi-item label="Select">
+      <sdpi-select
+        setting="volumeStep"
+        placeholder="Please choose a volume step"
+      >
+        <option value="1">1%</option>
+        <option value="2">2%</option>
+        <option value="3">3%</option>
+        <option value="4">4%</option>
+        <option value="5">5%</option>
+        <option value="10">10%</option>
+        <option value="15">15%</option>
+        <option value="20">20%</option>
+        <option value="25">25%</option>
+      </sdpi-select>
+    </sdpi-item>
+    <sdpi-item label="Direction">
+      <sdpi-select setting="direction" placeholder="Please choose a direction">
+        <option value="up">Increase</option>
+        <option value="down">Decrease</option>
+      </sdpi-select>
+    </sdpi-item>
+    <script>
+        const { streamDeckClient } = SDPIComponents;
+
+        // get current settings
+
+        streamDeckClient.setSettings({
+            volumeStep: 10,
+            direction: "up",
+        })
+    </script>
+  </body>
+</html>

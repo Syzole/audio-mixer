@@ -4,20 +4,6 @@
 	"Author": "Syzole",
 	"Actions": [
 		{
-			"Name": "Counter",
-			"UUID": "com.syzole.audio-mixer.increment",
-			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Displays a count, which increments by one on press.",
-			"PropertyInspectorPath": "ui/increment-counter.html",
-			"Controllers": ["Keypad"],
-			"States": [
-				{
-					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "middle"
-				}
-			]
-		},
-		{
 			"Name": "Volume",
 			"UUID": "com.syzole.audio-mixer.volume",
 			"Icon": "imgs/actions/volume/icon",
@@ -33,6 +19,20 @@
 					"TitleAlignment": "middle"
 				}
 			]
+		},
+		{
+		"Name": "Volume Step",
+		"UUID": "com.syzole.audio-mixer.volumestep",
+		"Icon": "imgs/actions/volume-step/icon",
+		"Tooltip": "Adjust volume by a set step.",
+		"PropertyInspectorPath": "ui/volume-step.html",
+		"Controllers": ["Keypad"],
+		"States": [
+			{ 
+				"Image": "imgs/actions/volume/key", 
+				"TitleAlignment": "middle" 
+			}
+		]
 		}
 	],
 	"Category": "Audio Mixer",

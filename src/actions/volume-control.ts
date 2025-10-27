@@ -2,7 +2,7 @@ import streamDeck, { action, DialDownEvent, DialRotateEvent, JsonObject, Singlet
 import { sendMessage, socket } from "../plugin";
 import { send, title } from "process";
 
-const APP_NAME = "Spotify";
+const APP_NAME = "Chrome";
 
 let currentVolume = 100; // fallback default
 
@@ -41,6 +41,9 @@ export class VolumeControlAction extends SingletonAction {
 		);
 	}
 
+	//This is for the regular button
+
+	//These 3 are for the dial or stream deck plus
 	override async onDialDown(ev: DialDownEvent) {
 		sendMessage({ type: "toggleMute", app: APP_NAME });
 	}
@@ -49,7 +52,7 @@ export class VolumeControlAction extends SingletonAction {
 		//streamDeck.logger.info("🔇 Toggling mute for", APP_NAME);
 		sendMessage({ type: "toggleMute", app: APP_NAME });
 	}
-
+	
 	override async onDialRotate(ev: DialRotateEvent) {
 		const direction = ev.payload.ticks > 0 ? "up" : "down";
 		sendMessage({ type: "adjustVolume", app: APP_NAME, direction });
