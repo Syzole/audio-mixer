@@ -35,13 +35,18 @@ interface GetStatusMessage {
 	app?: string;
 }
 
-interface dynamicAdjustVolumeMessage {
+export interface dynamicAdjustVolumeMessage {
 	type: "adjustVolume";
 	app: string;
 	direction: "up" | "down";
+	amount: number;
 }
 
-type PluginToServerMessage = SetVolumeMessage | ToggleMuteMessage | GetStatusMessage | dynamicAdjustVolumeMessage;
+interface getRunningApps{
+	type: "getRunningApps";
+}
+
+type PluginToServerMessage = SetVolumeMessage | ToggleMuteMessage | GetStatusMessage | dynamicAdjustVolumeMessage | getRunningApps;
 
 function connectWebSocket() {
 	//streamDeck.logger.info("Connecting to NativeAudioHelper...");
@@ -49,6 +54,8 @@ function connectWebSocket() {
 	socket = new WebSocket("ws://127.0.0.1:8181");
 	socket.onopen = () => {
 		streamDeck.logger.info("✅ Connected to NativeAudioHelper");
+		// Request the list of running applications
+		sendMessage({ type: "getRunningApps" });
 	};
 
 	socket.onmessage = (event) => {

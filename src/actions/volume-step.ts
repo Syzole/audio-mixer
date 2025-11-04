@@ -1,5 +1,5 @@
 import streamDeck, { action,  JsonObject,  KeyDownEvent,  SingletonAction, WillAppearEvent } from "@elgato/streamdeck";
-import { sendMessage, socket } from "../plugin";
+import { dynamicAdjustVolumeMessage, sendMessage, socket } from "../plugin";
 import { send } from "process";
 
 const APP_NAME = "Chrome";
@@ -39,7 +39,11 @@ export class VolumeStepAction extends SingletonAction {
 
     streamDeck.logger.info(`🔊 Adjusting volume ${direction} by ${step}% for ${APP_NAME}`);
 
-    sendMessage({ type: "adjustVolume", app: APP_NAME, direction });
+    const objFormed = { type: "adjustVolume", app: APP_NAME, direction, amount: step } as dynamicAdjustVolumeMessage
+
+    streamDeck.logger.info("Sending message:", objFormed);
+
+    sendMessage(objFormed);
 
     socket.addEventListener(
                 "message",

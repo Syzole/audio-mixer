@@ -55,7 +55,8 @@ export class VolumeControlAction extends SingletonAction {
 	
 	override async onDialRotate(ev: DialRotateEvent) {
 		const direction = ev.payload.ticks > 0 ? "up" : "down";
-		sendMessage({ type: "adjustVolume", app: APP_NAME, direction });
+		const step = ev.payload.ticks > 0 ? 5: -5;
+		sendMessage({ type: "adjustVolume", app: APP_NAME, direction, amount: Math.abs(ev.payload.ticks) });
 
 		socket.addEventListener(
 			"message",

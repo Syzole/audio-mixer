@@ -34,10 +34,17 @@
 
         // get current settings
 
+        const directionSelect = document.querySelector('sdpi-select[setting="direction"]');
+        const volumeSelect = document.querySelector('sdpi-select[setting="volumeStep"]');
+
+        const direction = directionSelect && directionSelect.value ? directionSelect.value : 'up';
+        const volumeStep = volumeSelect && volumeSelect.value ? Number(volumeSelect.value) : 10;
+
         streamDeckClient.setSettings({
-            volumeStep: 10,
-            direction: "up",
-        })
+          volumeStep,
+          direction
+        });
+        
     </script>
   </body>
 </html>

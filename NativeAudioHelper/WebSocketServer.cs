@@ -1,6 +1,7 @@
 using Fleck;
 using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
+using System.Diagnostics;
+using NAudio.CoreAudioApi;
 
 public class AudioWebSocketServer
 {
@@ -30,21 +31,33 @@ public class AudioWebSocketServer
                     Console.WriteLine("Received message: " + type);
                     string? process = (string?)msg["app"];
                     Console.WriteLine("Process: " + process);
+                    int? amount = (int?)msg["amount"];
+                    Console.WriteLine("Amount: " + amount);
 
-                    if (process == null || type == null)
+                    if (type == null)
                     {
-                        socket.Send("{\"error\":\"missing fields\"}");
+                        socket.Send("{\"error\":\"missing type\"}");
                         return;
                     }
 
                     if (type == "setVolume")
                     {
+                        if (process == null)
+                        {
+                            socket.Send("{\"error\":\"missing app\"}");
+                            return;
+                        }
                         float value = (float?)msg["value"] ?? 0f;
                         bool success = audioController.SetVolume(process, value);
                         socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\"}}");
                     }
                     else if (type == "toggleMute")
-                    {
+                    {   
+                        if (process == null)
+                        {
+                            socket.Send("{\"error\":\"missing app\"}");
+                            return;
+                        }
                         bool success = audioController.ToggleMute(process);
                         socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\"}}");
                     }
@@ -52,6 +65,12 @@ public class AudioWebSocketServer
                     {
                         bool success = false;
                         float currentVolume = 0;
+
+                        if (process == null)
+                        {
+                            socket.Send("{\"error\":\"missing app\"}");
+                            return;
+                        }
 
                         var session = audioController.FindSession(process);
                         if (session != null)
@@ -66,10 +85,17 @@ public class AudioWebSocketServer
                     else if (type == "adjustVolume")
                     {
                         bool success = false;
+
+                        if (process == null)
+                        {
+                            socket.Send("{\"error\":\"missing app\"}");
+                            return;
+                        }
+
                         var session = audioController.FindSession(process);
                         if (session != null)
                         {
-                            float step = 0.05f; // 5%
+                            float step = ((float?)amount ?? 0f) / 100f;
                             float current = session.SimpleAudioVolume.Volume;
                             string? direction = (string?)msg["direction"];
                             float newVolume = direction == "up"
@@ -84,9 +110,48 @@ public class AudioWebSocketServer
                         socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\",\"volume\":{roundedVolume}}}");
                     }
 
-                    else
+                    else if (type == "getRunningApps")
                     {
-                        socket.Send("{\"error\":\"unknown command\"}");
+                        var enumerator = new MMDeviceEnumerator();
+                        // Enumerate all active playback devices
+                        var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+                        var uniqueApps = new HashSet<string>();
+
+                        foreach (var device in devices)
+                        {
+                            var sessions = device.AudioSessionManager.Sessions;
+                            for (int i = 0; i < sessions.Count; i++)
+                            {
+                                var session = sessions[i];
+                                string procName;
+
+                                try
+                                {
+                                    int pid = (int)session.GetProcessID;
+                                    if (pid == 0)
+                                    {
+                                        procName = "System Sounds"; // Special case
+                                    }
+                                    else
+                                    {
+                                        var proc = Process.GetProcessById(pid);
+                                        procName = proc.ProcessName;
+                                    }
+                                }
+                                catch
+                                {
+                                    procName = "Unknown"; // Could not get process
+                                }
+
+                                uniqueApps.Add(procName); // Add to HashSet to deduplicate
+                            }
+                        }
+
+                        // Convert to JSON and send
+                        string appsJson = uniqueApps.Count > 0 ? JArray.FromObject(uniqueApps).ToString() : "[]";
+                        Console.WriteLine("Sending running apps: " + appsJson);
+
+                        socket.Send($"{{\"runningApps\":{appsJson}}}");
                     }
                 }
                 catch (Exception ex)
