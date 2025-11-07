@@ -33,6 +33,34 @@
 				"TitleAlignment": "middle" 
 			}
 		]
+		},
+		{
+			"Name": "Mute",
+			"UUID": "com.syzole.audio-mixer.mute",
+			"Icon": "imgs/actions/mute/icon",
+			"Tooltip": "Mute/Unmute the selected application.",
+			"PropertyInspectorPath": "ui/volume-mute.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/mute/key",
+					"TitleAlignment": "middle"
+				}
+			]
+		},
+		{
+			"Name": "Volume Controller",
+			"UUID": "com.syzole.audio-mixer.volume-controller",
+			"Icon": "imgs/actions/volume-controller/icon",
+			"Tooltip": "Control the volume of the selected application.",
+			"PropertyInspectorPath": "ui/volume-controller.html",
+			"Controllers": ["Keypad"],
+			"States": [
+				{
+					"Image": "imgs/actions/volume-controller/key",
+					"TitleAlignment": "middle"
+				}
+			]
 		}
 	],
 	"Category": "Audio Mixer",

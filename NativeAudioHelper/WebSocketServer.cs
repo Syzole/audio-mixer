@@ -2,6 +2,7 @@ using Fleck;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using NAudio.CoreAudioApi;
+using System.Drawing;
 
 public class AudioWebSocketServer
 {
@@ -27,12 +28,10 @@ public class AudioWebSocketServer
                 {
                     JObject msg = JObject.Parse(message);
                     Console.WriteLine("Received message: " + message);
+
                     string? type = (string?)msg["type"];
-                    Console.WriteLine("Received message: " + type);
                     string? process = (string?)msg["app"];
-                    Console.WriteLine("Process: " + process);
                     int? amount = (int?)msg["amount"];
-                    Console.WriteLine("Amount: " + amount);
 
                     if (type == null)
                     {
@@ -47,25 +46,24 @@ public class AudioWebSocketServer
                             socket.Send("{\"error\":\"missing app\"}");
                             return;
                         }
+
                         float value = (float?)msg["value"] ?? 0f;
                         bool success = audioController.SetVolume(process, value);
                         socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\"}}");
                     }
                     else if (type == "toggleMute")
-                    {   
+                    {
                         if (process == null)
                         {
                             socket.Send("{\"error\":\"missing app\"}");
                             return;
                         }
+
                         bool success = audioController.ToggleMute(process);
                         socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\"}}");
                     }
                     else if (type == "getStatus")
                     {
-                        bool success = false;
-                        float currentVolume = 0;
-
                         if (process == null)
                         {
                             socket.Send("{\"error\":\"missing app\"}");
@@ -75,17 +73,16 @@ public class AudioWebSocketServer
                         var session = audioController.FindSession(process);
                         if (session != null)
                         {
-                            currentVolume = session.SimpleAudioVolume.Volume * 100f;
-                            currentVolume = (float)Math.Round(currentVolume); // Round to nearest integer
-                            success = true;
+                            float currentVolume = session.SimpleAudioVolume.Volume * 100f;
+                            socket.Send($"{{\"app\":\"{process}\",\"volume\":{Math.Round(currentVolume)},\"status\":\"ok\"}}");
                         }
-
-                        socket.Send($"{{\"app\":\"{process}\",\"volume\":{currentVolume},\"status\":\"{(success ? "ok" : "fail")}\"}}");
+                        else
+                        {
+                            socket.Send($"{{\"app\":\"{process}\",\"volume\":0,\"status\":\"fail\"}}");
+                        }
                     }
                     else if (type == "adjustVolume")
                     {
-                        bool success = false;
-
                         if (process == null)
                         {
                             socket.Send("{\"error\":\"missing app\"}");
@@ -93,29 +90,32 @@ public class AudioWebSocketServer
                         }
 
                         var session = audioController.FindSession(process);
+                        bool success = false;
+                        int roundedVolume = 0;
+
                         if (session != null)
                         {
                             float step = ((float?)amount ?? 0f) / 100f;
                             float current = session.SimpleAudioVolume.Volume;
                             string? direction = (string?)msg["direction"];
+
                             float newVolume = direction == "up"
                                 ? Math.Min(current + step, 1f)
                                 : Math.Max(current - step, 0f);
 
                             session.SimpleAudioVolume.Volume = newVolume;
                             success = true;
+                            roundedVolume = (int)Math.Round(newVolume * 100f);
                         }
 
-                        int roundedVolume = session != null ? (int)Math.Round(session.SimpleAudioVolume.Volume * 100f) : 0;
                         socket.Send($"{{\"status\":\"{(success ? "ok" : "fail")}\",\"volume\":{roundedVolume}}}");
                     }
-
                     else if (type == "getRunningApps")
                     {
                         var enumerator = new MMDeviceEnumerator();
-                        // Enumerate all active playback devices
                         var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-                        var uniqueApps = new HashSet<string>();
+                        var appList = new JArray();
+                        var uniqueApps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
                         foreach (var device in devices)
                         {
@@ -123,34 +123,70 @@ public class AudioWebSocketServer
                             for (int i = 0; i < sessions.Count; i++)
                             {
                                 var session = sessions[i];
-                                string procName;
+                                string procName = "Unknown";
+                                string iconBase64 = "";
 
                                 try
                                 {
                                     int pid = (int)session.GetProcessID;
                                     if (pid == 0)
                                     {
-                                        procName = "System Sounds"; // Special case
+                                        procName = "System Sounds";
                                     }
                                     else
                                     {
                                         var proc = Process.GetProcessById(pid);
                                         procName = proc.ProcessName;
+
+                                        if (uniqueApps.Add(procName))
+                                        {
+                                            try
+                                            {
+                                                string exePath = proc.MainModule?.FileName ?? "";
+                                                if (!string.IsNullOrEmpty(exePath))
+                                                {
+                                                    using (Icon icon = Icon.ExtractAssociatedIcon(exePath))
+                                                    {
+                                                        if (icon != null)
+                                                        {
+                                                            using var bmp = icon.ToBitmap();
+                                                            using var ms = new MemoryStream();
+                                                            bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                                                            iconBase64 = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            catch
+                                            {
+                                                // ignore icon extraction errors
+                                            }
+
+                                            appList.Add(new JObject
+                                            {
+                                                ["app"] = procName,
+                                                ["icon"] = iconBase64
+                                            });
+                                        }
                                     }
                                 }
                                 catch
                                 {
-                                    procName = "Unknown"; // Could not get process
+                                    // fallback for inaccessible processes
+                                    if (uniqueApps.Add(procName))
+                                    {
+                                        appList.Add(new JObject
+                                        {
+                                            ["app"] = procName,
+                                            ["icon"] = iconBase64
+                                        });
+                                    }
                                 }
-
-                                uniqueApps.Add(procName); // Add to HashSet to deduplicate
                             }
                         }
 
-                        // Convert to JSON and send
-                        string appsJson = uniqueApps.Count > 0 ? JArray.FromObject(uniqueApps).ToString() : "[]";
-                        Console.WriteLine("Sending running apps: " + appsJson);
-
+                        string appsJson = appList.ToString();
+                        Console.WriteLine("Sending running apps with icons: " + appsJson);
                         socket.Send($"{{\"runningApps\":{appsJson}}}");
                     }
                 }
